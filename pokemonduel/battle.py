@@ -36,6 +36,8 @@ class Battle():
         self.type_effectiveness = {}
         self.inverse_battle = inverse_battle
         self.msg = ""
+        self.bg = random.choice(["bg-meadow","bg-icecave", "bg-mountain", "bg-river","bg-route","bg-thunderplains", "bg-volcanocave",
+                                 "bg-beach","bg-beachshore","bg-city","bg-dampcave","bg-deepsea","bg-desert","bg-earthycave","bg-forest"])
 
     async def run(self):
         """Runs the duel."""

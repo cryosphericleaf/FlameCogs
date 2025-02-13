@@ -2,6 +2,8 @@ import discord
 from redbot.core.data_manager import bundled_data_path
 import json
 from .buttons import BattlePromptView, PreviewPromptView
+from .FE import generate_field_image, get_misc_image, team_preview
+import io
 
 
 async def find(ctx, db, filter):
@@ -33,10 +35,23 @@ async def find_one(ctx, db, filter):
         return results[0]
     return None
 
+
 async def generate_team_preview(battle):
     """Generates a message for trainers to preview their team."""
     preview_view = PreviewPromptView(battle)
-    await battle.channel.send("Select a lead pokemon:", view=preview_view)
+    battlefield = get_misc_image(bundled_data_path(battle.ctx.cog), battle.bg)
+    p1_active_mons = tuple((mon._name, mon.level) for mon in battle.trainer1.party if mon.hp > 0)
+    p2_active_mons = tuple((mon._name, mon.level) for mon in battle.trainer2.party if mon.hp > 0)
+    trainerteams = (p1_active_mons, p2_active_mons)
+    team_preview(bundled_data_path(battle.ctx.cog),battlefield, trainerteams)
+    img_buffer = io.BytesIO()
+    battlefield.save(img_buffer, format="PNG")
+    img_buffer.seek(0)
+
+    e = discord.Embed(title=f"Team Preview ({battle.trainer1.name} vs {battle.trainer2.name})", color=await battle.ctx.embed_color())
+    file = discord.File(img_buffer, filename='field.png')
+    e.set_image(url=f"attachment://{file.filename}")
+    await battle.channel.send(embed=e, file=file,  view=preview_view)
     return preview_view
 
 async def generate_main_battle_message(battle):
@@ -74,8 +89,15 @@ async def generate_main_battle_message(battle):
     )
     e.set_footer(text="Who Wins!?")
     try: #aiohttp 3.7 introduced a bug in dpy which causes this to error when rate limited. This catch just lets the bot continue when that happens.
+        img_data = generate_field_image(battle)
         battle_view = BattlePromptView(battle)
-        await battle.channel.send(embed=e, view=battle_view)
+        if img_data:
+            e = discord.Embed(title=f"Battle between {battle.trainer1.name} and {battle.trainer2.name}", color=await battle.ctx.embed_color(),)
+            file = discord.File(img_data, filename='field.png')
+            e.set_image(url=f"attachment://{file.filename}")
+            await battle.channel.send(embed=e, file=file,  view=battle_view)
+        else:
+            await battle.channel.send(embed=e, view=battle_view)
     except RuntimeError:
         pass
     return battle_view
