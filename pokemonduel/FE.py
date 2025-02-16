@@ -241,10 +241,7 @@ class Side:
         hp_text = f"{self.mon.hp}/{self.mon.starting_hp}"
 
         font = ImageFont.truetype(self.path / "misc" / "Poppins-Bold.ttf", 18)
-        text_bbox = self.draw.textbbox((0, 0), hp_text, font=font)
-        text_width = text_bbox[2] - text_bbox[0]
-        text_height = text_bbox[3] - text_bbox[1]
-
+        text_width, text_height = get_text_dimensions(text=hp_text, font=font)
         text_position = (
             self.position[0] + (self.size - text_width) / 2, 
             (base_y + (bar_height - text_height) / 2) - 1,
